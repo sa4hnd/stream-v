@@ -39,7 +39,7 @@ export default function Navbar() {
           {/* Logo + Nav Links */}
           <div className="flex items-center gap-8 lg:gap-10">
             <Link href="/" className="flex-shrink-0 hover:opacity-90 transition-opacity">
-              <img src="/logo.png" alt="SAHND+" className="h-12 lg:h-14" />
+              <img src="/logo.png" alt="SAHND+" className="h-7 lg:h-8" />
             </Link>
 
             <div className="hidden md:flex items-center gap-1">
