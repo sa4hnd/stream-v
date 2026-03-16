@@ -11,7 +11,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const movie = await getMovieDetail(Number(params.id));
-  return { title: `${movie.title} - StreamV` };
+  return { title: `${movie.title} - SAHND+` };
 }
 
 export default async function MovieDetailPage({ params }: Props) {

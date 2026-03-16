@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "StreamV - Watch Movies & TV Shows Free",
+  title: "SAHND+ - Watch Movies & TV Shows Free",
   description: "Stream unlimited movies and TV shows in stunning quality. Your premium destination for entertainment.",
 };
 

@@ -17,15 +17,15 @@ export async function generateMetadata({ params, searchParams }: Props) {
   try {
     if (type === 'movie') {
       const movie = await getMovieDetail(Number(id));
-      return { title: `Watch ${movie.title} - StreamV` };
+      return { title: `Watch ${movie.title} - SAHND+` };
     } else {
       const show = await getTVDetail(Number(id));
       const s = searchParams.s || '1';
       const e = searchParams.e || '1';
-      return { title: `Watch ${show.name} S${s}E${e} - StreamV` };
+      return { title: `Watch ${show.name} S${s}E${e} - SAHND+` };
     }
   } catch {
-    return { title: 'Watch - StreamV' };
+    return { title: 'Watch - SAHND+' };
   }
 }
 

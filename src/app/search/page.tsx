@@ -2,7 +2,7 @@ import { searchMulti, getMovieGenres, getTVGenres } from '@/lib/tmdb';
 import ContentCard from '@/components/ContentCard';
 import Link from 'next/link';
 
-export const metadata = { title: 'Search - StreamV' };
+export const metadata = { title: 'Search - SAHND+' };
 
 interface Props {
   searchParams: { q?: string };

@@ -12,7 +12,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const show = await getTVDetail(Number(params.id));
-  return { title: `${show.name} - StreamV` };
+  return { title: `${show.name} - SAHND+` };
 }
 
 export default async function TVDetailPage({ params }: Props) {

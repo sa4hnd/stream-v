@@ -7,12 +7,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-start justify-between gap-8 mb-10">
           {/* Brand */}
           <div className="max-w-[240px]">
-            <svg viewBox="0 0 110 30" className="h-5 mb-3" fill="none">
-              <rect x="0" y="2" width="24" height="24" rx="6" fill="#E50914" />
-              <polygon points="9.5,8 9.5,20 19,14" fill="white" />
-              <text x="30" y="21" fontFamily="system-ui, -apple-system, sans-serif" fontSize="19" fontWeight="700" fill="white" letterSpacing="0.5">Stream</text>
-              <text x="86" y="21" fontFamily="system-ui, -apple-system, sans-serif" fontSize="19" fontWeight="700" fill="#E50914" letterSpacing="0.5">V</text>
-            </svg>
+            <img src="/logo.png" alt="SAHND+" className="h-5 mb-3" />
             <p className="text-white/20 text-xs leading-relaxed">
               Stream unlimited movies and TV shows.
             </p>

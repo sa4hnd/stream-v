@@ -4,7 +4,7 @@ import GenreList from '@/components/GenreList';
 import { TMDBResponse, Movie } from '@/types';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Series - StreamV' };
+export const metadata = { title: 'Series - SAHND+' };
 
 const empty: TMDBResponse<Movie> = { page: 1, results: [], total_pages: 0, total_results: 0 };
 

@@ -39,16 +39,7 @@ export default function Navbar() {
           {/* Logo + Nav Links */}
           <div className="flex items-center gap-8 lg:gap-10">
             <Link href="/" className="flex-shrink-0 hover:opacity-90 transition-opacity">
-              <svg viewBox="0 0 110 30" className="h-6 lg:h-7" fill="none">
-                <rect x="0" y="2" width="24" height="24" rx="6" fill="#E50914" />
-                <polygon points="9.5,8 9.5,20 19,14" fill="white" />
-                <text x="30" y="21" fontFamily="system-ui, -apple-system, sans-serif" fontSize="19" fontWeight="700" fill="white" letterSpacing="0.5">
-                  Stream
-                </text>
-                <text x="86" y="21" fontFamily="system-ui, -apple-system, sans-serif" fontSize="19" fontWeight="700" fill="#E50914" letterSpacing="0.5">
-                  V
-                </text>
-              </svg>
+              <img src="/logo.png" alt="SAHND+" className="h-6 lg:h-7" />
             </Link>
 
             <div className="hidden md:flex items-center gap-1">
