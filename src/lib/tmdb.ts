@@ -1,6 +1,5 @@
 import { Movie, MovieDetail, Genre, SeasonDetail, TMDBResponse } from '@/types';
 
-const API_KEY = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
@@ -15,11 +14,15 @@ export const getBackdropUrl = (path: string | null, size: string = 'original') =
 };
 
 async function fetchTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-  const searchParams = new URLSearchParams({ api_key: API_KEY!, ...params });
+  const key = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
+  const searchParams = new URLSearchParams({ api_key: key, ...params });
   const res = await fetch(`${BASE_URL}${endpoint}?${searchParams}`, {
     next: { revalidate: 3600 },
   });
-  if (!res.ok) throw new Error(`TMDB Error: ${res.status}`);
+  if (!res.ok) {
+    console.error(`TMDB Error: ${res.status} for ${endpoint} (key: ${key ? key.slice(0, 4) + '...' : 'MISSING'})`);
+    throw new Error(`TMDB Error: ${res.status}`);
+  }
   return res.json();
 }
 

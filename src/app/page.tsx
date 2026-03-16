@@ -2,32 +2,39 @@ import { getTrending, getPopularMovies, getTopRatedMovies, getPopularTV, getTopR
 import HeroBanner from '@/components/HeroBanner';
 import ContentRow from '@/components/ContentRow';
 import ContinueWatchingRow, { HeroLastWatched } from '@/components/ContinueWatching';
+import { TMDBResponse, Movie } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
+const empty: TMDBResponse<Movie> = { page: 1, results: [], total_pages: 0, total_results: 0 };
+
 export default async function HomePage() {
-  const [trending, popularMovies, topRatedMovies, nowPlaying, popularTV, topRatedTV] = await Promise.all([
-    getTrending('week'),
-    getPopularMovies(),
-    getTopRatedMovies(),
-    getNowPlayingMovies(),
-    getPopularTV(),
-    getTopRatedTV(),
-  ]);
+  let trending = empty, popularMovies = empty, topRatedMovies = empty,
+      nowPlaying = empty, popularTV = empty, topRatedTV = empty;
+
+  try {
+    [trending, popularMovies, topRatedMovies, nowPlaying, popularTV, topRatedTV] = await Promise.all([
+      getTrending('week'),
+      getPopularMovies(),
+      getTopRatedMovies(),
+      getNowPlayingMovies(),
+      getPopularTV(),
+      getTopRatedTV(),
+    ]);
+  } catch (e) {
+    console.error('Failed to fetch TMDB data:', e);
+  }
 
   const heroMovie = trending.results[0];
 
   return (
     <div className="page-enter">
-      {/* Hero: shows last watched if available, falls back to trending */}
       <HeroLastWatched
         fallbackHero={heroMovie ? <HeroBanner movie={heroMovie} /> : null}
       />
 
       <div className="-mt-20 relative z-10">
-        {/* Continue Watching (client-side, only shows if history exists) */}
         <ContinueWatchingRow />
-
         <ContentRow title="Trending Movies" movies={trending.results.slice(1, 20)} />
         <ContentRow title="Popular Movies" movies={popularMovies.results} type="movie" />
         <ContentRow title="Now Playing" movies={nowPlaying.results} type="movie" />
