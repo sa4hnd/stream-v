@@ -3,22 +3,57 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getLastWatchedEpisode } from '@/lib/history';
+import { SeasonDetail } from '@/types';
 
 interface SmartWatchButtonProps {
   tvId: number;
+  totalSeasons?: number;
 }
 
-export default function SmartWatchButton({ tvId }: SmartWatchButtonProps) {
+export default function SmartWatchButton({ tvId, totalSeasons }: SmartWatchButtonProps) {
   const [href, setHref] = useState(`/watch/tv/${tvId}?s=1&e=1`);
   const [label, setLabel] = useState('Watch S1 E1');
 
   useEffect(() => {
-    const last = getLastWatchedEpisode(tvId);
-    if (last) {
-      setHref(`/watch/tv/${tvId}?s=${last.season}&e=${last.episode}`);
-      setLabel(`Resume S${last.season} E${last.episode}`);
-    }
-  }, [tvId]);
+    const resolve = async () => {
+      const last = getLastWatchedEpisode(tvId);
+      if (!last) return;
+
+      // Not finished → resume exactly where they left off
+      if (!last.completed) {
+        setHref(`/watch/tv/${tvId}?s=${last.season}&e=${last.episode}`);
+        setLabel(`Resume S${last.season} E${last.episode}`);
+        return;
+      }
+
+      // Finished → find the next episode
+      try {
+        const res = await fetch(`/api/season?tvId=${tvId}&season=${last.season}`);
+        const data: SeasonDetail = await res.json();
+        const episodes = data.episodes || [];
+        const nextEp = episodes.find((ep) => ep.episode_number === last.episode + 1);
+
+        if (nextEp) {
+          setHref(`/watch/tv/${tvId}?s=${last.season}&e=${nextEp.episode_number}`);
+          setLabel(`Watch S${last.season} E${nextEp.episode_number}`);
+        } else if (totalSeasons && last.season < totalSeasons) {
+          // Next season
+          setHref(`/watch/tv/${tvId}?s=${last.season + 1}&e=1`);
+          setLabel(`Watch S${last.season + 1} E1`);
+        } else {
+          // Finished the whole show, just show watch from start
+          setHref(`/watch/tv/${tvId}?s=1&e=1`);
+          setLabel('Rewatch S1 E1');
+        }
+      } catch {
+        // Fallback to the completed episode
+        setHref(`/watch/tv/${tvId}?s=${last.season}&e=${last.episode}`);
+        setLabel(`Watch S${last.season} E${last.episode}`);
+      }
+    };
+
+    resolve();
+  }, [tvId, totalSeasons]);
 
   return (
     <Link

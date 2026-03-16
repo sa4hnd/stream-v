@@ -73,7 +73,7 @@ export default async function TVDetailPage({ params }: Props) {
             <p className="text-white/50 text-sm leading-relaxed mb-7 max-w-2xl">{show.overview}</p>
 
             <div className="flex items-center gap-3 flex-wrap mb-10">
-              <SmartWatchButton tvId={show.id} />
+              <SmartWatchButton tvId={show.id} totalSeasons={show.number_of_seasons} />
               {trailer && (
                 <a
                   href={`https://www.youtube.com/watch?v=${trailer.key}`}

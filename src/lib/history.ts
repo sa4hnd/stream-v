@@ -107,14 +107,14 @@ export const getShowProgress = (tvId: number): { watched: number; total: number;
 };
 
 // Get the last watched episode for a TV show (for resume)
-export const getLastWatchedEpisode = (tvId: number): { season: number; episode: number } | null => {
+export const getLastWatchedEpisode = (tvId: number): { season: number; episode: number; completed: boolean } | null => {
   const history = getWatchHistory()
     .filter((h) => h.id === tvId && h.type === 'tv')
     .sort((a, b) => b.timestamp - a.timestamp);
   if (!history.length) return null;
   const last = history[0];
   if (last.season && last.episode) {
-    return { season: last.season, episode: last.episode };
+    return { season: last.season, episode: last.episode, completed: last.completed };
   }
   return null;
 };

@@ -4,6 +4,46 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { WatchHistoryItem, getLastWatched, getResumeUrl, getContinueWatching } from '@/lib/history';
+import { SeasonDetail } from '@/types';
+
+// Resolve the smart URL: if not finished → same content, if finished TV → next episode
+async function resolveSmartUrl(item: WatchHistoryItem): Promise<{ url: string; label: string }> {
+  const baseUrl = getResumeUrl(item);
+
+  // Not completed → resume where they left off
+  if (!item.completed) {
+    return { url: baseUrl, label: 'Resume' };
+  }
+
+  // Completed movie → just rewatch
+  if (item.type !== 'tv' || !item.season || !item.episode) {
+    return { url: baseUrl, label: 'Watch Again' };
+  }
+
+  // Completed TV episode → find next episode
+  try {
+    const res = await fetch(`/api/season?tvId=${item.id}&season=${item.season}`);
+    const data: SeasonDetail = await res.json();
+    const episodes = data.episodes || [];
+    const nextEp = episodes.find((ep) => ep.episode_number === item.episode! + 1);
+
+    if (nextEp) {
+      return {
+        url: `/watch/tv/${item.id}?s=${item.season}&e=${nextEp.episode_number}`,
+        label: `Play S${item.season} E${nextEp.episode_number}`,
+      };
+    }
+
+    // Try next season
+    const nextSeason = item.season + 1;
+    return {
+      url: `/watch/tv/${item.id}?s=${nextSeason}&e=1`,
+      label: `Play S${nextSeason} E1`,
+    };
+  } catch {
+    return { url: baseUrl, label: 'Watch Now' };
+  }
+}
 
 export default function ContinueWatchingRow() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
@@ -67,10 +107,22 @@ export default function ContinueWatchingRow() {
 export function HeroLastWatched({ fallbackHero }: { fallbackHero: React.ReactNode }) {
   const [lastWatched, setLastWatched] = useState<WatchHistoryItem | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [smartUrl, setSmartUrl] = useState<string | null>(null);
+  const [buttonLabel, setButtonLabel] = useState('Watch Now');
 
   useEffect(() => {
-    setLastWatched(getLastWatched());
-    setMounted(true);
+    const init = async () => {
+      const item = getLastWatched();
+      setLastWatched(item);
+      setMounted(true);
+
+      if (item) {
+        const resolved = await resolveSmartUrl(item);
+        setSmartUrl(resolved.url);
+        setButtonLabel(resolved.label);
+      }
+    };
+    init();
   }, []);
 
   if (!mounted || !lastWatched) return <>{fallbackHero}</>;
@@ -78,6 +130,8 @@ export function HeroLastWatched({ fallbackHero }: { fallbackHero: React.ReactNod
   const backdrop = lastWatched.backdrop_path
     ? `https://image.tmdb.org/t/p/original${lastWatched.backdrop_path}`
     : null;
+
+  const heroUrl = smartUrl || getResumeUrl(lastWatched);
 
   return (
     <div className="relative w-full h-[80vh] min-h-[550px] max-h-[800px] rounded-b-[2rem] overflow-hidden">
@@ -119,10 +173,10 @@ export function HeroLastWatched({ fallbackHero }: { fallbackHero: React.ReactNod
 
             <div className="flex items-center gap-3">
               <Link
-                href={getResumeUrl(lastWatched)}
+                href={heroUrl}
                 className="inline-flex items-center gap-2.5 bg-white text-black font-semibold px-7 py-3 rounded-full transition-all duration-300 hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98]"
               >
-                {lastWatched.progress > 0 && !lastWatched.completed ? 'Resume' : 'Watch Now'}
+                {buttonLabel}
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                 </svg>
