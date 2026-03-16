@@ -13,14 +13,14 @@ export const getBackdropUrl = (path: string | null, size: string = 'original') =
   return `${IMG_BASE}/${size}${path}`;
 };
 
+const API_KEY = '3ea9ba88a81be0f283362871b7f6b19e';
+
 async function fetchTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-  const key = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
-  const searchParams = new URLSearchParams({ api_key: key, ...params });
+  const searchParams = new URLSearchParams({ api_key: API_KEY, ...params });
   const res = await fetch(`${BASE_URL}${endpoint}?${searchParams}`, {
     next: { revalidate: 3600 },
   });
   if (!res.ok) {
-    console.error(`TMDB Error: ${res.status} for ${endpoint} (key: ${key ? key.slice(0, 4) + '...' : 'MISSING'})`);
     throw new Error(`TMDB Error: ${res.status}`);
   }
   return res.json();

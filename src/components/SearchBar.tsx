@@ -42,7 +42,7 @@ export default function SearchBar() {
     setLoading(true);
     try {
       const res = await fetch(
-        `https://api.themoviedb.org/3/search/multi?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&query=${encodeURIComponent(q)}`
+        `https://api.themoviedb.org/3/search/multi?api_key=3ea9ba88a81be0f283362871b7f6b19e&query=${encodeURIComponent(q)}`
       );
       const data = await res.json();
       const filtered = (data.results || [])

@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-start justify-between gap-8 mb-10">
           {/* Brand */}
           <div className="max-w-[240px]">
-            <img src="/logo.png" alt="SAHND+" className="h-5 mb-3" />
+            <img src="/logo.png" alt="SAHND+" className="h-7 mb-3" />
             <p className="text-white/20 text-xs leading-relaxed">
               Stream unlimited movies and TV shows.
             </p>
