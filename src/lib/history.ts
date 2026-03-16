@@ -11,6 +11,8 @@ export interface WatchHistoryItem {
   timestamp: number; // when they started watching
   progress: number; // 0-100 percentage
   completed: boolean;
+  currentTime?: number; // exact playback position in seconds (for resume)
+  duration?: number; // total duration in seconds
 }
 
 const HISTORY_KEY = 'streamv-watch-history';
@@ -41,13 +43,15 @@ export const addToHistory = (item: Omit<WatchHistoryItem, 'timestamp' | 'progres
   localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, 50)));
 };
 
-export const updateProgress = (id: number, type: 'movie' | 'tv', progress: number, season?: number, episode?: number): void => {
+export const updateProgress = (id: number, type: 'movie' | 'tv', progress: number, season?: number, episode?: number, currentTime?: number, duration?: number): void => {
   const history = getWatchHistory();
   const item = history.find((h) => h.id === id && h.type === type && h.season === season && h.episode === episode);
   if (item) {
     item.progress = progress;
     item.completed = progress >= 90;
     item.timestamp = Date.now();
+    if (currentTime !== undefined) item.currentTime = Math.floor(currentTime);
+    if (duration !== undefined) item.duration = Math.floor(duration);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   }
 };
@@ -70,6 +74,15 @@ export const isWatched = (id: number, type: 'movie' | 'tv', season?: number, epi
 export const getProgress = (id: number, type: 'movie' | 'tv', season?: number, episode?: number): number => {
   const item = getWatchHistory().find((h) => h.id === id && h.type === type && h.season === season && h.episode === episode);
   return item?.progress || 0;
+};
+
+// Get saved playback position in seconds (for startAt resume)
+export const getSavedTime = (id: number, type: 'movie' | 'tv', season?: number, episode?: number): number => {
+  const item = getWatchHistory().find((h) => h.id === id && h.type === type && h.season === season && h.episode === episode);
+  if (item && !item.completed && item.currentTime && item.currentTime > 10) {
+    return item.currentTime;
+  }
+  return 0;
 };
 
 export const getResumeUrl = (item: WatchHistoryItem): string => {

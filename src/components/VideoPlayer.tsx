@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { streamingSources } from '@/lib/sources';
-import { addToHistory, markAsWatched, updateProgress } from '@/lib/history';
+import { addToHistory, markAsWatched, updateProgress, getSavedTime } from '@/lib/history';
 
 interface VideoPlayerProps {
   type: 'movie' | 'tv';
@@ -15,9 +15,9 @@ interface VideoPlayerProps {
   posterPath?: string | null;
   overview?: string;
   voteAverage?: number;
-  runtime?: number; // in minutes
+  runtime?: number; // in minutes (TMDB)
   nextEpisodeUrl?: string | null;
-  nextEpisodeLabel?: string; // e.g. "S1 E3"
+  nextEpisodeLabel?: string;
   autoNext?: boolean;
 }
 
@@ -32,21 +32,31 @@ export default function VideoPlayer({
   const [autoTrying, setAutoTrying] = useState(false);
   const [showNextButton, setShowNextButton] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [usingRealEvents, setUsingRealEvents] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const watchTimerRef = useRef<NodeJS.Timeout>();
   const progressIntervalRef = useRef<NodeJS.Timeout>();
   const elapsedRef = useRef(0);
+  const lastSaveRef = useRef(0);
 
   const currentSource = streamingSources[sourceIndex];
-  const embedUrl = currentSource.getUrl(type, id, season, episode);
+  const savedTime = getSavedTime(id, type, season, episode);
 
-  // Total duration in seconds (use runtime or default 45min for TV, 120min for movies)
-  const totalSeconds = (runtime || (type === 'tv' ? 45 : 120)) * 60;
+  // Build embed URL with startAt for resume
+  const embedUrl = currentSource.supportsStartAt && savedTime > 0
+    ? currentSource.getUrl(type, id, season, episode, savedTime)
+    : currentSource.getUrl(type, id, season, episode);
+
+  // Effective duration: use real duration from player events, or TMDB runtime, or defaults
+  const effectiveDuration = duration > 0 ? duration : (runtime || (type === 'tv' ? 45 : 120)) * 60;
+  const effectiveTime = usingRealEvents ? currentTime : elapsedRef.current;
+
   // Trigger "next episode" button 2 minutes before end
-  const triggerAt = Math.max(totalSeconds - 120, totalSeconds * 0.85);
+  const triggerAt = Math.max(effectiveDuration - 120, effectiveDuration * 0.85);
 
   // Record to watch history on mount
   useEffect(() => {
@@ -59,26 +69,86 @@ export default function VideoPlayer({
       season, episode,
     });
 
-    // After 5 minutes, mark as watched
+    // Fallback: after 5 minutes, mark as watched (only if no real events)
     watchTimerRef.current = setTimeout(() => {
-      markAsWatched(id, type, season, episode);
+      if (!usingRealEvents) {
+        markAsWatched(id, type, season, episode);
+      }
     }, 300000);
 
     return () => {
       if (watchTimerRef.current) clearTimeout(watchTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
-  }, [id, type, season, episode, title, posterPath, backdrop, voteAverage, overview]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, type, season, episode]);
 
-  // Progress tracking timer - starts when iframe loads
+  // Listen for VixSrc postMessage events (real player data)
   useEffect(() => {
-    if (isLoading || autoTrying) return;
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return;
 
+      // VixSrc sends: { type: "PLAYER_EVENT", data: { event, currentTime, duration, video_id } }
+      const msg = event.data;
+      if (msg.type !== 'PLAYER_EVENT' || !msg.data) return;
+
+      const { event: playerEvent, currentTime: ct, duration: dur } = msg.data;
+      setUsingRealEvents(true);
+
+      if (dur > 0) setDuration(dur);
+      if (ct >= 0) setCurrentTime(ct);
+
+      const realDuration = dur > 0 ? dur : effectiveDuration;
+      const progress = realDuration > 0 ? Math.min(Math.round((ct / realDuration) * 100), 100) : 0;
+
+      // Save progress every 10 seconds of playback
+      if (playerEvent === 'timeupdate' && ct > 0) {
+        if (Math.abs(ct - lastSaveRef.current) >= 10) {
+          lastSaveRef.current = ct;
+          updateProgress(id, type, progress, season, episode, ct, realDuration);
+        }
+
+        // Show "Next Episode" button near end
+        if (nextEpisodeUrl && ct >= triggerAt && !hasNavigated) {
+          setShowNextButton(true);
+          setCountdown(Math.max(0, Math.ceil(realDuration - ct)));
+        }
+      }
+
+      // Video ended — auto-next or mark watched
+      if (playerEvent === 'ended') {
+        markAsWatched(id, type, season, episode);
+        if (autoNext && nextEpisodeUrl && !hasNavigated) {
+          setHasNavigated(true);
+          router.push(nextEpisodeUrl);
+        }
+      }
+
+      // Pause — save progress immediately
+      if (playerEvent === 'pause' && ct > 0) {
+        updateProgress(id, type, progress, season, episode, ct, realDuration);
+      }
+
+      // Seeked — save the new position
+      if (playerEvent === 'seeked' && ct > 0) {
+        lastSaveRef.current = ct;
+        updateProgress(id, type, progress, season, episode, ct, realDuration);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [id, type, season, episode, effectiveDuration, triggerAt, nextEpisodeUrl, autoNext, hasNavigated, router]);
+
+  // Fallback timer for sources that don't send postMessage events
+  useEffect(() => {
+    if (isLoading || autoTrying || usingRealEvents) return;
+
+    const totalSeconds = effectiveDuration;
     const interval = setInterval(() => {
       elapsedRef.current += 1;
-      setElapsedSeconds(elapsedRef.current);
 
-      // Update progress in localStorage every 30 seconds
+      // Update progress every 30 seconds
       if (elapsedRef.current % 30 === 0) {
         const progress = Math.min(Math.round((elapsedRef.current / totalSeconds) * 100), 100);
         updateProgress(id, type, progress, season, episode);
@@ -87,11 +157,10 @@ export default function VideoPlayer({
       // Show "Next Episode" button when near end
       if (nextEpisodeUrl && elapsedRef.current >= triggerAt && !hasNavigated) {
         setShowNextButton(true);
-        const remaining = totalSeconds - elapsedRef.current;
-        setCountdown(Math.max(0, Math.ceil(remaining)));
+        setCountdown(Math.max(0, Math.ceil(totalSeconds - elapsedRef.current)));
       }
 
-      // Auto-navigate when done
+      // Auto-navigate when timer expires
       if (elapsedRef.current >= totalSeconds && !hasNavigated) {
         markAsWatched(id, type, season, episode);
         if (autoNext && nextEpisodeUrl) {
@@ -103,7 +172,7 @@ export default function VideoPlayer({
 
     progressIntervalRef.current = interval;
     return () => clearInterval(interval);
-  }, [isLoading, autoTrying, totalSeconds, triggerAt, nextEpisodeUrl, autoNext, hasNavigated, id, type, season, episode, router]);
+  }, [isLoading, autoTrying, usingRealEvents, effectiveDuration, triggerAt, nextEpisodeUrl, autoNext, hasNavigated, id, type, season, episode, router]);
 
   const tryNextSource = useCallback(() => {
     const nextIndex = sourceIndex + 1;
@@ -112,6 +181,8 @@ export default function VideoPlayer({
       setFailedSources((prev) => new Set(prev).add(sourceIndex));
       setSourceIndex(nextIndex);
       setIsLoading(true);
+      setUsingRealEvents(false);
+      elapsedRef.current = 0;
     } else {
       setAutoTrying(false);
       setIsLoading(false);
@@ -121,13 +192,9 @@ export default function VideoPlayer({
   // Auto-fallback timeout - 8 seconds
   useEffect(() => {
     if (isLoading && autoTrying) {
-      timeoutRef.current = setTimeout(() => {
-        tryNextSource();
-      }, 8000);
+      timeoutRef.current = setTimeout(() => tryNextSource(), 8000);
     }
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, [isLoading, autoTrying, tryNextSource]);
 
   const handleLoad = () => {
@@ -147,6 +214,9 @@ export default function VideoPlayer({
     setSourceIndex(i);
     setIsLoading(true);
     setAutoTrying(false);
+    setUsingRealEvents(false);
+    elapsedRef.current = 0;
+    lastSaveRef.current = 0;
   };
 
   const startAutoTry = () => {
@@ -162,10 +232,13 @@ export default function VideoPlayer({
     }
   };
 
-  const progressPercent = Math.min((elapsedSeconds / totalSeconds) * 100, 100);
+  const progressPercent = effectiveDuration > 0 ? Math.min((effectiveTime / effectiveDuration) * 100, 100) : 0;
+
   const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.floor(secs % 60);
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
@@ -193,6 +266,9 @@ export default function VideoPlayer({
                   {autoTrying ? 'Trying servers...' : 'Connecting...'}
                 </p>
                 <p className="text-white/30 text-xs">{currentSource.name}</p>
+                {savedTime > 0 && currentSource.supportsStartAt && (
+                  <p className="text-accent-red text-[10px] mt-1">Resuming at {formatTime(savedTime)}</p>
+                )}
               </div>
               {autoTrying && (
                 <button
@@ -223,11 +299,9 @@ export default function VideoPlayer({
         {/* Next Episode Overlay */}
         {showNextButton && nextEpisodeUrl && !hasNavigated && (
           <div className="absolute bottom-0 left-0 right-0 z-20 animate-slide-up">
-            {/* Gradient backdrop */}
             <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-4 px-4 sm:px-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Countdown ring */}
                   {autoNext && countdown > 0 && (
                     <div className="relative w-10 h-10 flex-shrink-0">
                       <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
@@ -279,7 +353,7 @@ export default function VideoPlayer({
         )}
 
         {/* Progress bar at bottom of player */}
-        {!isLoading && elapsedSeconds > 0 && (
+        {!isLoading && effectiveTime > 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10 z-10">
             <div
               className="h-full bg-accent-red transition-all duration-1000 ease-linear"
@@ -297,11 +371,14 @@ export default function VideoPlayer({
             <span className="text-[11px] font-medium text-white/40">
               {currentSource.name}
             </span>
-            {/* Elapsed time */}
-            {!isLoading && elapsedSeconds > 10 && (
+            {/* Real-time position from VixSrc or fallback timer */}
+            {!isLoading && effectiveTime > 10 && (
               <span className="text-[10px] text-white/20">
-                {formatTime(elapsedSeconds)} / {formatTime(totalSeconds)}
+                {formatTime(effectiveTime)} / {formatTime(effectiveDuration)}
               </span>
+            )}
+            {usingRealEvents && (
+              <span className="text-[9px] text-emerald-500/60 font-medium">LIVE</span>
             )}
           </div>
           {!autoTrying && !isLoading && (

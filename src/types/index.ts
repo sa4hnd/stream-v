@@ -106,7 +106,9 @@ export interface TMDBResponse<T> {
 
 export interface StreamingSource {
   name: string;
-  getUrl: (type: 'movie' | 'tv', id: number, season?: number, episode?: number) => string;
+  getUrl: (type: 'movie' | 'tv', id: number, season?: number, episode?: number, startAt?: number) => string;
+  supportsEvents?: boolean; // supports postMessage player events (timeupdate, ended, etc.)
+  supportsStartAt?: boolean; // supports startAt parameter for resume
 }
 
 export interface WatchlistItem {
