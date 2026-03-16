@@ -91,3 +91,30 @@ export const getRecentlyWatched = (): WatchHistoryItem[] => {
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 20);
 };
+
+// Get overall progress for a TV show (how many episodes watched out of total)
+export const getShowProgress = (tvId: number): { watched: number; total: number; lastSeason?: number; lastEpisode?: number } => {
+  const history = getWatchHistory().filter((h) => h.id === tvId && h.type === 'tv');
+  const watched = history.filter((h) => h.completed).length;
+  const total = history.length;
+  const lastItem = history.sort((a, b) => b.timestamp - a.timestamp)[0];
+  return {
+    watched,
+    total,
+    lastSeason: lastItem?.season,
+    lastEpisode: lastItem?.episode,
+  };
+};
+
+// Get the last watched episode for a TV show (for resume)
+export const getLastWatchedEpisode = (tvId: number): { season: number; episode: number } | null => {
+  const history = getWatchHistory()
+    .filter((h) => h.id === tvId && h.type === 'tv')
+    .sort((a, b) => b.timestamp - a.timestamp);
+  if (!history.length) return null;
+  const last = history[0];
+  if (last.season && last.episode) {
+    return { season: last.season, episode: last.episode };
+  }
+  return null;
+};

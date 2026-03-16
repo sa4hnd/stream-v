@@ -5,6 +5,7 @@ import CastRow from '@/components/CastRow';
 import ContentRow from '@/components/ContentRow';
 import WatchlistButton from '@/components/WatchlistButton';
 import SeasonSelector from '@/components/SeasonSelector';
+import ResumeShowButton from '@/components/ResumeShowButton';
 
 interface Props {
   params: { id: string };
@@ -72,6 +73,7 @@ export default async function TVDetailPage({ params }: Props) {
             <p className="text-white/50 text-sm leading-relaxed mb-7 max-w-2xl">{show.overview}</p>
 
             <div className="flex items-center gap-3 flex-wrap mb-10">
+              <ResumeShowButton tvId={show.id} />
               <Link
                 href={`/watch/tv/${show.id}?s=1&e=1`}
                 className="inline-flex items-center gap-2.5 bg-white text-black font-semibold px-8 py-3 rounded-full transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98]"

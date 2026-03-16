@@ -1,10 +1,9 @@
 import Image from 'next/image';
-import VideoPlayer from '@/components/VideoPlayer';
-import EpisodeSidebar from '@/components/EpisodeSidebar';
 import Link from 'next/link';
-import { getMovieDetail, getTVDetail, getBackdropUrl, getImageUrl } from '@/lib/tmdb';
+import { getMovieDetail, getTVDetail, getBackdropUrl, getImageUrl, getSeasonDetail } from '@/lib/tmdb';
 import ContentRow from '@/components/ContentRow';
 import WatchlistButton from '@/components/WatchlistButton';
+import WatchSection from '@/components/WatchSection';
 import { MovieDetail } from '@/types';
 
 interface Props {
@@ -58,6 +57,39 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const year = (detail.release_date || detail.first_air_date || '').slice(0, 4);
   const isTV = mediaType === 'tv';
 
+  // Fetch season data for TV to get runtime and next episode
+  let currentRuntime: number | undefined;
+  let nextEpisodeUrl: string | null = null;
+  let nextEpisodeLabel: string | undefined;
+
+  if (isTV && season) {
+    try {
+      const seasonData = await getSeasonDetail(tmdbId, season);
+      const episodes = seasonData.episodes || [];
+      const currentEp = episodes.find((ep) => ep.episode_number === (episode || 1));
+      currentRuntime = currentEp?.runtime;
+
+      // Find next episode
+      const nextEp = episodes.find((ep) => ep.episode_number === (episode || 1) + 1);
+      if (nextEp) {
+        nextEpisodeUrl = `/watch/tv/${tmdbId}?s=${season}&e=${nextEp.episode_number}`;
+        nextEpisodeLabel = `S${season} E${nextEp.episode_number} · ${nextEp.name}`;
+      } else {
+        // Check if there's a next season
+        const validSeasons = (detail.seasons || []).filter((s) => s.season_number > 0);
+        const nextSeason = validSeasons.find((s) => s.season_number === season + 1);
+        if (nextSeason) {
+          nextEpisodeUrl = `/watch/tv/${tmdbId}?s=${season + 1}&e=1`;
+          nextEpisodeLabel = `S${season + 1} E1 · ${nextSeason.name}`;
+        }
+      }
+    } catch {
+      // Season data fetch failed, continue without it
+    }
+  } else if (mediaType === 'movie') {
+    currentRuntime = detail.runtime;
+  }
+
   return (
     <div className="min-h-screen page-enter bg-bg-primary">
       {/* Subtle background glow */}
@@ -89,35 +121,21 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
         {/* Main Content: Player + Sidebar */}
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className={`flex gap-4 ${isTV ? 'flex-col xl:flex-row' : ''}`}>
-            {/* Player Column */}
-            <div className={isTV ? 'flex-1 min-w-0' : 'w-full'}>
-              <VideoPlayer
-                type={mediaType}
-                id={tmdbId}
-                season={season}
-                episode={episode}
-                title={title}
-                backdrop={backdrop}
-                posterPath={detail.poster_path}
-                overview={detail.overview}
-                voteAverage={detail.vote_average}
-              />
-            </div>
-
-            {/* Episode Sidebar (TV only) */}
-            {isTV && season && (
-              <div className="xl:w-[380px] flex-shrink-0">
-                <EpisodeSidebar
-                  tvId={tmdbId}
-                  currentSeason={season}
-                  currentEpisode={episode || 1}
-                  seasons={detail.seasons || []}
-                  showTitle={title}
-                />
-              </div>
-            )}
-          </div>
+          <WatchSection
+            type={mediaType}
+            id={tmdbId}
+            season={season}
+            episode={episode}
+            title={title}
+            backdrop={backdrop}
+            posterPath={detail.poster_path}
+            overview={detail.overview}
+            voteAverage={detail.vote_average}
+            runtime={currentRuntime}
+            nextEpisodeUrl={nextEpisodeUrl}
+            nextEpisodeLabel={nextEpisodeLabel}
+            seasons={isTV ? detail.seasons : undefined}
+          />
         </div>
 
         {/* Info Bar */}
@@ -149,6 +167,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
                     {detail.vote_average.toFixed(1)}
                   </span>
                   {year && <span className="text-white/30 text-sm">{year}</span>}
+                  {currentRuntime && <span className="text-white/30 text-sm">{currentRuntime}min</span>}
                   {detail.genres?.slice(0, 3).map((g) => (
                     <Link key={g.id} href={`/genre/${g.id}`} className="text-xs text-white/30 hover:text-white/60 transition-colors">
                       {g.name}

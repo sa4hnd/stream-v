@@ -12,14 +12,26 @@ interface EpisodeSidebarProps {
   currentEpisode: number;
   seasons: Season[];
   showTitle: string;
+  autoNext?: boolean;
+  onAutoNextChange?: (value: boolean) => void;
 }
 
-export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, seasons }: EpisodeSidebarProps) {
+export default function EpisodeSidebar({
+  tvId, currentSeason, currentEpisode, seasons,
+  autoNext: autoNextProp, onAutoNextChange,
+}: EpisodeSidebarProps) {
   const validSeasons = seasons.filter((s) => s.season_number > 0);
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [autoNext, setAutoNext] = useState(true);
+  const [localAutoNext, setLocalAutoNext] = useState(true);
+
+  const autoNext = autoNextProp !== undefined ? autoNextProp : localAutoNext;
+  const toggleAutoNext = () => {
+    const val = !autoNext;
+    if (onAutoNextChange) onAutoNextChange(val);
+    else setLocalAutoNext(val);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -46,7 +58,6 @@ export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, se
   const nextEpisode = episodes.find((ep) => ep.episode_number === currentEpisode + 1);
   const nextSeasonExists = validSeasons.some((s) => s.season_number === currentSeason + 1);
 
-  // Auto-next navigation hint
   const getAutoNextTarget = () => {
     if (nextEpisode) {
       return `/watch/tv/${tvId}?s=${currentSeason}&e=${currentEpisode + 1}`;
@@ -59,15 +70,25 @@ export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, se
 
   const autoNextTarget = getAutoNextTarget();
 
+  // Count watched episodes in current season view
+  const watchedCount = episodes.filter((ep) => isWatched(tvId, 'tv', selectedSeason, ep.episode_number)).length;
+
   return (
     <div className="h-full flex flex-col rounded-2xl bg-white/[0.03] border border-white/[0.04] overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-white/[0.04]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-white">Episodes</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-white">Episodes</h3>
+            {watchedCount > 0 && (
+              <span className="text-[10px] text-white/20 bg-white/5 px-1.5 py-0.5 rounded-full">
+                {watchedCount}/{episodes.length}
+              </span>
+            )}
+          </div>
           {/* Auto-next toggle */}
           <button
-            onClick={() => setAutoNext(!autoNext)}
+            onClick={toggleAutoNext}
             className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${
               autoNext
                 ? 'bg-accent-red/20 text-accent-red'
@@ -75,7 +96,7 @@ export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, se
             }`}
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 6v2.798l-5.445-3.63z" />
             </svg>
             Auto
           </button>
@@ -191,6 +212,12 @@ export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, se
                         </svg>
                       </div>
                     )}
+                    {/* Progress overlay on thumbnail */}
+                    {epProgress > 0 && !isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10">
+                        <div className="h-full bg-accent-red" style={{ width: `${epProgress}%` }} />
+                      </div>
+                    )}
                     {/* Duration badge */}
                     {ep.runtime > 0 && (
                       <div className="absolute bottom-1 right-1 bg-black/70 text-[9px] text-white/70 px-1 py-0.5 rounded">
@@ -216,7 +243,7 @@ export default function EpisodeSidebar({ tvId, currentSeason, currentEpisode, se
                       </p>
                     </div>
                     {/* Progress bar for partially watched */}
-                    {epProgress > 0 && epProgress < 100 && (
+                    {epProgress > 0 && epProgress < 100 && !isActive && (
                       <div className="w-full h-0.5 bg-white/5 rounded-full mb-1 mt-0.5">
                         <div className="h-full bg-accent-red rounded-full" style={{ width: `${epProgress}%` }} />
                       </div>
