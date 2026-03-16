@@ -2,6 +2,7 @@ import { getPopularMovies, getTopRatedMovies, getNowPlayingMovies, getUpcomingMo
 import ContentRow from '@/components/ContentRow';
 import GenreList from '@/components/GenreList';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Movies - StreamV' };
 
 export default async function MoviesPage() {

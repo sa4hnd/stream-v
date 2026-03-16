@@ -3,6 +3,8 @@ import HeroBanner from '@/components/HeroBanner';
 import ContentRow from '@/components/ContentRow';
 import ContinueWatchingRow, { HeroLastWatched } from '@/components/ContinueWatching';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const [trending, popularMovies, topRatedMovies, nowPlaying, popularTV, topRatedTV] = await Promise.all([
     getTrending('week'),

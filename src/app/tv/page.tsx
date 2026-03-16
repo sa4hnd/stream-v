@@ -2,6 +2,7 @@ import { getPopularTV, getTopRatedTV, getAiringTodayTV, getTVGenres } from '@/li
 import ContentRow from '@/components/ContentRow';
 import GenreList from '@/components/GenreList';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Series - StreamV' };
 
 export default async function TVPage() {
