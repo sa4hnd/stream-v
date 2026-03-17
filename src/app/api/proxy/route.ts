@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
         'Referer': req.nextUrl.searchParams.get('referer') || '',
       },
-      // @ts-ignore - needed for node-fetch compatibility
+      // @ts-expect-error - needed for node-fetch compatibility
       signal: AbortSignal.timeout(15000),
     });
 
