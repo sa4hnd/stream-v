@@ -4,12 +4,14 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Movie } from '@/types';
+import { Movie, Channel } from '@/types';
 
 export default function SearchBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Movie[]>([]);
+  const [channelResults, setChannelResults] = useState<Channel[]>([]);
+  const [allChannels, setAllChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,6 +34,19 @@ export default function SearchBar() {
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Fetch channels once for local search
+  useEffect(() => {
+    fetch('https://sahnd-plus-api.vercel.app/api/channels')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.categories) {
+          const flat = data.categories.flatMap((c: any) => c.channels);
+          setAllChannels(flat);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const searchTMDB = useCallback(async (q: string) => {
@@ -57,6 +72,13 @@ export default function SearchBar() {
 
   const handleChange = (value: string) => {
     setQuery(value);
+    // Filter channels locally
+    if (value.trim()) {
+      const q = value.toLowerCase();
+      setChannelResults(allChannels.filter((ch) => ch.name.toLowerCase().includes(q)).slice(0, 5));
+    } else {
+      setChannelResults([]);
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => searchTMDB(value), 300);
   };
@@ -111,8 +133,44 @@ export default function SearchBar() {
           </form>
 
           {/* Live Results Dropdown */}
-          {(results.length > 0 || (loading && query)) && (
+          {(results.length > 0 || channelResults.length > 0 || (loading && query)) && (
             <div className="absolute top-full mt-2 w-full glass-heavy rounded-xl overflow-hidden shadow-2xl shadow-black/50 max-h-[70vh] overflow-y-auto z-50">
+              {/* Channel Results */}
+              {channelResults.length > 0 && (
+                <>
+                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30 border-b border-white/5">
+                    Channels
+                  </div>
+                  {channelResults.map((ch) => (
+                    <Link
+                      key={`ch-${ch.id}`}
+                      href={`/channel/${ch.id}`}
+                      onClick={() => { setIsOpen(false); setResults([]); setChannelResults([]); setQuery(''); }}
+                      className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5"
+                    >
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
+                        {ch.logo ? (
+                          <img src={ch.logo} alt={ch.name} className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <span className="text-xs font-bold text-white/30">{ch.name.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-medium truncate">{ch.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-medium flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                            LIVE
+                          </span>
+                          <span>{ch.category}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {/* Media Results */}
               {loading ? (
                 <div className="p-4 flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-accent-red/30 border-t-accent-red rounded-full animate-spin" />

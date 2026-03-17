@@ -7,6 +7,7 @@ import SearchBar from './SearchBar';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/channels', label: 'Channels' },
   { href: '/movies', label: 'Movies' },
   { href: '/tv', label: 'Series' },
 ];

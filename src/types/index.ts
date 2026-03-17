@@ -119,3 +119,16 @@ export interface WatchlistItem {
   vote_average: number;
   addedAt: number;
 }
+
+export interface Channel {
+  id: string;
+  name: string;
+  category: string;
+  logo?: string;
+  stream_url: string;
+}
+
+export interface ChannelCategory {
+  name: string;
+  channels: Channel[];
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import VideoPlayer from '@/components/VideoPlayer';
+import HlsVideoPlayer from '@/components/HlsVideoPlayer';
 import EpisodeSidebar from '@/components/EpisodeSidebar';
 import { Season } from '@/types';
 
@@ -32,7 +32,7 @@ export default function WatchSection({
     <div className={`flex gap-4 ${isTV ? 'flex-col xl:flex-row' : ''}`}>
       {/* Player Column */}
       <div className={isTV ? 'flex-1 min-w-0' : 'w-full'}>
-        <VideoPlayer
+        <HlsVideoPlayer
           type={type}
           id={id}
           season={season}
