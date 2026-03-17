@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Use Node.js runtime (not edge) — edge blocks http:// fetches, and IPTV streams use HTTP
+export const runtime = 'nodejs';
+
+// Increase timeout for live streams
+export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
@@ -14,20 +18,38 @@ export async function GET(req: NextRequest) {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
         'Referer': req.nextUrl.searchParams.get('referer') || '',
       },
+      // @ts-ignore - needed for node-fetch compatibility
+      signal: AbortSignal.timeout(15000),
     });
 
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    const body = response.body;
+    if (!response.ok) {
+      return NextResponse.json({ error: `Upstream ${response.status}` }, { status: response.status });
+    }
 
-    return new Response(body, {
-      status: response.status,
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    const data = await response.arrayBuffer();
+
+    return new Response(data, {
+      status: 200,
       headers: {
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cache-Control': 'no-cache, no-store',
       },
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 502 });
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+    },
+  });
 }
