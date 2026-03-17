@@ -6,8 +6,10 @@ import Hls from 'hls.js';
 import { Channel } from '@/types';
 import { isFavoriteChannel, toggleFavoriteChannel } from '@/lib/channelFavorites';
 
-// Proxy all HLS requests through our API to avoid CORS
-const proxyUrl = (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`;
+import { STREAM_API } from '@/lib/streamApi';
+
+// Proxy HLS through Cloud Run (same IP as channel tokens)
+const proxyUrl = (url: string) => `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(url)}&referer=`;
 
 interface Props {
   channelId: string;
