@@ -1,4 +1,4 @@
-export const STREAM_API = 'https://sahnd-plus-api.vercel.app';
+export const STREAM_API = 'https://sahnd-api-16018004132.europe-west1.run.app';
 
 export interface StreamResult {
   m3u8: string;
@@ -24,11 +24,13 @@ export async function fetchStream(
       const vixData = await vixRes.json();
       if (vixData.success && vixData.streams?.length) {
         const stream = vixData.streams[0];
+        const referer = stream.headers?.Referer || 'https://vixsrc.to/';
+        // Proxy through our API so browser gets CORS headers + Referer is handled server-side
         return {
-          m3u8: stream.url,
+          m3u8: `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(stream.url)}&referer=${encodeURIComponent(referer)}`,
           subtitles: stream.subtitles || [],
           provider: 'Vixsrc',
-          headers: { Referer: 'https://vixsrc.to/' },
+          headers: {},
         };
       }
     }
@@ -45,11 +47,14 @@ export async function fetchStream(
           (s: any) => typeof s.url === 'string' && (s.url.includes('playlist') || s.url.includes('.m3u8'))
         );
         if (playable) {
+          const referer = playable.headers?.Referer || '';
           return {
-            m3u8: playable.url,
+            m3u8: referer
+              ? `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(playable.url)}&referer=${encodeURIComponent(referer)}`
+              : playable.url,
             subtitles: playable.subtitles || [],
             provider: playable.provider || 'Unknown',
-            headers: playable.headers || {},
+            headers: {},
           };
         }
       }
