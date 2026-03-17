@@ -6,6 +6,9 @@ import Hls from 'hls.js';
 import { Channel } from '@/types';
 import { isFavoriteChannel, toggleFavoriteChannel } from '@/lib/channelFavorites';
 
+// Proxy all HLS requests through our API to avoid CORS
+const proxyUrl = (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`;
+
 interface Props {
   channelId: string;
   allChannels: Channel[];
@@ -26,6 +29,26 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
   const [isFav, setIsFav] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Custom HLS.js loader that proxies all requests
+  const getProxyLoader = useCallback(() => {
+    const DefaultLoader = Hls.DefaultConfig.loader;
+
+    class ProxyLoader extends (DefaultLoader as any) {
+      constructor(config: any) {
+        super(config);
+        const originalLoad = this.load.bind(this);
+        this.load = (context: any, config: any, callbacks: any) => {
+          // Rewrite URL to go through our proxy
+          if (context.url && !context.url.startsWith('/api/proxy')) {
+            context.url = proxyUrl(context.url);
+          }
+          originalLoad(context, config, callbacks);
+        };
+      }
+    }
+    return ProxyLoader as any;
+  }, []);
 
   // Load channel stream
   const loadStream = useCallback((channel: Channel) => {
@@ -49,9 +72,11 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
         lowLatencyMode: true,
         maxBufferLength: 10,
         maxMaxBufferLength: 30,
+        loader: getProxyLoader(),
       });
       hlsRef.current = hls;
-      hls.loadSource(url);
+      // Load through proxy
+      hls.loadSource(proxyUrl(url));
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setLoading(false);
@@ -59,13 +84,20 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
       });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          setError(true);
-          setLoading(false);
+          // Try to recover
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            setError(true);
+            setLoading(false);
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari native HLS
-      video.src = url;
+      // Safari native HLS — proxy the URL
+      video.src = proxyUrl(url);
       video.addEventListener('loadedmetadata', () => {
         setLoading(false);
         video.play().catch(() => {});
@@ -78,7 +110,7 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
       setError(true);
       setLoading(false);
     }
-  }, []);
+  }, [getProxyLoader]);
 
   // Init
   useEffect(() => {
@@ -128,9 +160,7 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
     setCurrentChannel(ch);
     setPaused(false);
     resetHideTimer();
-    // Update URL without full reload
     window.history.replaceState(null, '', `/channel/${ch.id}`);
-    // Scroll strip to active
     setTimeout(() => {
       const el = document.getElementById(`ch-strip-${ch.id}`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });

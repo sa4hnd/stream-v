@@ -96,8 +96,9 @@ export default function HlsVideoPlayer({
       })
       .catch(() => {
         if (cancelled) return;
-        setHlsError(true);
-        setHlsLoading(false);
+        // Auto-fallback to embed — stream extraction failed
+        setMode('embed');
+        setEmbedLoading(true);
       });
 
     return () => { cancelled = true; };
@@ -134,6 +135,11 @@ export default function HlsVideoPlayer({
           setHlsLoading(false);
           hls.destroy();
           hlsRef.current = null;
+          // Auto-fallback to embed after 1s
+          setTimeout(() => {
+            setMode('embed');
+            setEmbedLoading(true);
+          }, 1000);
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -144,8 +150,9 @@ export default function HlsVideoPlayer({
         video.play().catch(() => {});
       }, { once: true });
       video.addEventListener('error', () => {
-        setHlsError(true);
-        setHlsLoading(false);
+        // Auto-fallback to embed
+        setMode('embed');
+        setEmbedLoading(true);
       }, { once: true });
     } else {
       setHlsError(true);
