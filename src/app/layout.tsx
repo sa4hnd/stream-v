@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { LayoutWrapper } from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "SAHND+ - Watch Movies & TV Shows Free",
@@ -18,7 +19,9 @@ export default function RootLayout({
       <body className="noise antialiased min-h-screen">
         <Navbar />
         <main className="min-h-screen">{children}</main>
-        <Footer />
+        <LayoutWrapper>
+          <Footer />
+        </LayoutWrapper>
       </body>
     </html>
   );

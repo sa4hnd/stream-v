@@ -6,6 +6,15 @@ const SECONDARY_COLOR = 'B20710';
 
 export const streamingSources: StreamingSource[] = [
   {
+    name: 'AutoEmbed',
+    getUrl: (type, id, season, episode) => {
+      if (type === 'tv' && season && episode) {
+        return `https://player.autoembed.cc/embed/${type}/${id}/${season}/${episode}`;
+      }
+      return `https://player.autoembed.cc/embed/${type}/${id}`;
+    },
+  },
+  {
     name: 'VixSrc',
     supportsEvents: true,
     supportsStartAt: true,
@@ -38,15 +47,6 @@ export const streamingSources: StreamingSource[] = [
         params.set('startAt', String(Math.floor(startAt)));
       }
       return `${url}?${params.toString()}`;
-    },
-  },
-  {
-    name: 'AutoEmbed',
-    getUrl: (type, id, season, episode) => {
-      if (type === 'tv' && season && episode) {
-        return `https://player.autoembed.cc/embed/${type}/${id}/${season}/${episode}`;
-      }
-      return `https://player.autoembed.cc/embed/${type}/${id}`;
     },
   },
   {

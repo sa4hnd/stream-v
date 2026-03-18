@@ -36,7 +36,7 @@ export default function HlsVideoPlayer({
   const lastSaveRef = useRef(0);
   const watchTimerRef = useRef<NodeJS.Timeout>();
 
-  const [mode, setMode] = useState<PlayerMode>('hls');
+  const [mode, setMode] = useState<PlayerMode>('embed');
   const [streamData, setStreamData] = useState<StreamResult | null>(null);
   const [hlsLoading, setHlsLoading] = useState(true);
   const [hlsError, setHlsError] = useState(false);
@@ -517,20 +517,6 @@ export default function HlsVideoPlayer({
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
-          {/* SAHND+ native button */}
-          <button
-            onClick={switchToHls}
-            className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1.5 ${
-              mode === 'hls'
-                ? 'bg-accent-red text-white'
-                : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.07] hover:text-white/50'
-            }`}
-          >
-            {mode === 'hls' && !hlsLoading && !hlsError && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-            {mode === 'hls' && hlsLoading && <div className="w-3 h-3 border-[1.5px] border-white/20 border-t-white rounded-full animate-spin" />}
-            SAHND+
-          </button>
-
           {/* Embed server buttons */}
           {streamingSources.map((source, i) => {
             const isFailed = failedSources.has(i);
@@ -556,6 +542,20 @@ export default function HlsVideoPlayer({
               </button>
             );
           })}
+
+          {/* SAHND+ native button */}
+          <button
+            onClick={switchToHls}
+            className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1.5 ${
+              mode === 'hls'
+                ? 'bg-accent-red text-white'
+                : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.07] hover:text-white/50'
+            }`}
+          >
+            {mode === 'hls' && !hlsLoading && !hlsError && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+            {mode === 'hls' && hlsLoading && <div className="w-3 h-3 border-[1.5px] border-white/20 border-t-white rounded-full animate-spin" />}
+            SAHND+
+          </button>
         </div>
       </div>
     </div>
