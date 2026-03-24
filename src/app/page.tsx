@@ -1,7 +1,9 @@
 import { getTrending, getPopularMovies, getTopRatedMovies, getPopularTV, getTopRatedTV, getNowPlayingMovies } from '@/lib/tmdb';
+import { fetchMyTVMovies, fetchMyTVSeries } from '@/lib/mytvMovies';
 import HeroBanner from '@/components/HeroBanner';
 import ContentRow from '@/components/ContentRow';
 import ContinueWatchingRow, { HeroLastWatched } from '@/components/ContinueWatching';
+import { MyTVMovieRow, MyTVSeriesRow } from '@/components/MyTVContentRow';
 import { TMDBResponse, Movie } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +13,8 @@ const empty: TMDBResponse<Movie> = { page: 1, results: [], total_pages: 0, total
 export default async function HomePage() {
   let trending = empty, popularMovies = empty, topRatedMovies = empty,
       nowPlaying = empty, popularTV = empty, topRatedTV = empty;
+  let mytvMovies: Awaited<ReturnType<typeof fetchMyTVMovies>> = { movies: [], categories: [], count: 0 };
+  let mytvSeries: Awaited<ReturnType<typeof fetchMyTVSeries>> = { series: [], categories: [], count: 0 };
 
   try {
     [trending, popularMovies, topRatedMovies, nowPlaying, popularTV, topRatedTV] = await Promise.all([
@@ -23,6 +27,15 @@ export default async function HomePage() {
     ]);
   } catch (e) {
     console.error('Failed to fetch TMDB data:', e);
+  }
+
+  try {
+    [mytvMovies, mytvSeries] = await Promise.all([
+      fetchMyTVMovies(),
+      fetchMyTVSeries(),
+    ]);
+  } catch (e) {
+    console.error('Failed to fetch MyTV+ data:', e);
   }
 
   const heroMovie = trending.results[0];
@@ -41,6 +54,8 @@ export default async function HomePage() {
         <ContentRow title="Top Rated" movies={topRatedMovies.results} type="movie" />
         <ContentRow title="Popular Series" movies={popularTV.results} type="tv" />
         <ContentRow title="Top Rated Series" movies={topRatedTV.results} type="tv" />
+        <MyTVMovieRow title="MyTV+ Movies" movies={mytvMovies.movies.slice(0, 20)} />
+        <MyTVSeriesRow title="MyTV+ Series" series={mytvSeries.series.slice(0, 20)} />
       </div>
     </div>
   );

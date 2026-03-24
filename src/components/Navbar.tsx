@@ -10,6 +10,7 @@ const navLinks = [
   { href: '/channels', label: 'Channels' },
   { href: '/movies', label: 'Movies' },
   { href: '/tv', label: 'Series' },
+  { href: '/mytv', label: 'MyTV+' },
 ];
 
 export default function Navbar() {

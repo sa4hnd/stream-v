@@ -132,3 +132,56 @@ export interface ChannelCategory {
   name: string;
   channels: Channel[];
 }
+
+// --- MyTV+ Movies & Series ---
+export interface MyTVMovie {
+  id: string;
+  title: string;
+  category: string;
+  year: string;
+  description: string;
+  poster: string;
+  backdrop: string;
+  stream_url: string;
+  rating: string;
+  duration: string;
+  language: string;
+}
+
+export interface MyTVEpisode {
+  episode_number: number;
+  title: string;
+  stream_url: string;
+  duration: string;
+  description: string;
+}
+
+export interface MyTVSeason {
+  season_number: number;
+  title: string;
+  episodes: MyTVEpisode[];
+}
+
+export interface MyTVSeries {
+  id: string;
+  title: string;
+  category: string;
+  year: string;
+  description: string;
+  poster: string;
+  backdrop: string;
+  rating: string;
+  language: string;
+  seasons: MyTVSeason[];
+  stream_url: string;
+}
+
+export interface MyTVMovieCategory {
+  name: string;
+  movies: MyTVMovie[];
+}
+
+export interface MyTVSeriesCategory {
+  name: string;
+  series: MyTVSeries[];
+}
