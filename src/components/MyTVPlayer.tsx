@@ -18,7 +18,9 @@ export default function MyTVPlayer({ streamUrl, title, poster, onEnded }: MyTVPl
   const [error, setError] = useState(false);
 
   const isM3U8 = streamUrl.includes('.m3u8');
+  // Proxy all streams through our API to handle CORS + mixed content (http -> https)
   const proxyUrl = `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(streamUrl)}&referer=`;
+  const mp4ProxyUrl = `${STREAM_API}/proxy?url=${encodeURIComponent(streamUrl)}&referer=`;
 
   const loadStream = useCallback(() => {
     const video = videoRef.current;
@@ -74,8 +76,8 @@ export default function MyTVPlayer({ streamUrl, title, poster, onEnded }: MyTVPl
         setLoading(false);
       }
     } else {
-      // Direct MP4 — native video element
-      video.src = streamUrl;
+      // Direct MP4 — proxy through API to handle mixed content (http -> https)
+      video.src = mp4ProxyUrl;
       video.addEventListener('loadedmetadata', () => {
         setLoading(false);
         video.play().catch(() => {});
@@ -85,7 +87,7 @@ export default function MyTVPlayer({ streamUrl, title, poster, onEnded }: MyTVPl
         setLoading(false);
       }, { once: true });
     }
-  }, [streamUrl, isM3U8, proxyUrl]);
+  }, [streamUrl, isM3U8, proxyUrl, mp4ProxyUrl]);
 
   useEffect(() => {
     loadStream();
