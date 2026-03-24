@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { MyTVMovie, MyTVSeries } from '@/types';
 
-function MyTVCard({ item, href }: { item: { title: string; poster: string; year: string; rating: string; category: string }; href: string }) {
+function MyTVCard({ item, href }: { item: { title: string; poster: string; year?: string; rating: string; category: string }; href: string }) {
   return (
     <Link
       href={href}

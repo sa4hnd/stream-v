@@ -56,7 +56,6 @@ function MovieCard({ movie }: { movie: MyTVMovie }) {
 }
 
 function SeriesCard({ serie }: { serie: MyTVSeries }) {
-  const episodeCount = serie.seasons.reduce((t, s) => t + s.episodes.length, 0);
   return (
     <Link
       href={`/mytv/series/${serie.id}`}
@@ -78,9 +77,8 @@ function SeriesCard({ serie }: { serie: MyTVSeries }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
           <p className="text-white text-xs font-semibold line-clamp-2 mb-1">{serie.title}</p>
           <div className="flex items-center gap-2 text-[10px] text-white/60">
-            {serie.year && <span>{serie.year}</span>}
-            {serie.seasons.length > 0 && <span>{serie.seasons.length}S</span>}
-            {episodeCount > 0 && <span>{episodeCount}E</span>}
+            {serie.rating && <span>&#9733; {serie.rating}</span>}
+            {serie.numberOfSeasons && <span>{serie.numberOfSeasons}S</span>}
           </div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
             <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300 border border-white/20">

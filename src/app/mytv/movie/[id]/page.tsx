@@ -81,9 +81,12 @@ export default async function MyTVMoviePage({ params }: PageProps) {
                     {movie.rating}
                   </span>
                 )}
-                {movie.duration && <span>{movie.duration}</span>}
-                {movie.language && <span>{movie.language}</span>}
+                {movie.duration && <span>{movie.duration} min</span>}
+                {movie.age && <span>{movie.age}</span>}
               </div>
+              {movie.stars && (
+                <p className="text-white/30 text-xs mt-2">{movie.stars}</p>
+              )}
               {movie.description && (
                 <p className="text-white/40 text-sm mt-4 max-w-2xl leading-relaxed">{movie.description}</p>
               )}

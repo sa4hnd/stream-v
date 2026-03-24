@@ -143,36 +143,28 @@ export interface MyTVMovie {
   poster: string;
   backdrop: string;
   stream_url: string;
+  stream_url_arabic: string;
+  stream_url_english: string;
+  subtitle_arabic: string;
+  subtitle_english: string;
+  subtitle_kurdish: string;
+  trailer: string;
   rating: string;
   duration: string;
-  language: string;
-}
-
-export interface MyTVEpisode {
-  episode_number: number;
-  title: string;
-  stream_url: string;
-  duration: string;
-  description: string;
-}
-
-export interface MyTVSeason {
-  season_number: number;
-  title: string;
-  episodes: MyTVEpisode[];
+  age: string;
+  director: string;
+  stars: string;
 }
 
 export interface MyTVSeries {
   id: string;
   title: string;
   category: string;
-  year: string;
-  description: string;
-  poster: string;
-  backdrop: string;
+  numberOfSeasons: string;
   rating: string;
-  language: string;
-  seasons: MyTVSeason[];
+  age: string;
+  poster: string;
+  seasons: never[];
   stream_url: string;
 }
 

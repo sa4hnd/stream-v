@@ -1,5 +1,4 @@
 import { fetchMyTVSerie } from '@/lib/mytvMovies';
-import MyTVSeriesPlayer from './MyTVSeriesPlayer';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -33,9 +32,9 @@ export default async function MyTVSeriesPage({ params }: PageProps) {
     <div className="min-h-screen page-enter">
       {/* Backdrop */}
       <div className="relative h-[50vh] min-h-[400px]">
-        {serie.backdrop || serie.poster ? (
+        {serie.poster ? (
           <img
-            src={serie.backdrop || serie.poster}
+            src={serie.poster}
             alt={serie.title}
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -61,7 +60,7 @@ export default async function MyTVSeriesPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Info + Player */}
+          {/* Info */}
           <div className="flex-1 min-w-0 space-y-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -72,7 +71,6 @@ export default async function MyTVSeriesPage({ params }: PageProps) {
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display text-white mb-3">{serie.title}</h1>
               <div className="flex items-center gap-4 text-sm text-white/50">
-                {serie.year && <span>{serie.year}</span>}
                 {serie.rating && (
                   <span className="flex items-center gap-1 text-yellow-400">
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -81,16 +79,13 @@ export default async function MyTVSeriesPage({ params }: PageProps) {
                     {serie.rating}
                   </span>
                 )}
-                {serie.seasons.length > 0 && <span>{serie.seasons.length} Season{serie.seasons.length > 1 ? 's' : ''}</span>}
-                {serie.language && <span>{serie.language}</span>}
+                {serie.numberOfSeasons && <span>{serie.numberOfSeasons} Season{Number(serie.numberOfSeasons) > 1 ? 's' : ''}</span>}
+                {serie.age && <span>{serie.age}</span>}
               </div>
-              {serie.description && (
-                <p className="text-white/40 text-sm mt-4 max-w-2xl leading-relaxed">{serie.description}</p>
-              )}
+              <p className="text-white/30 text-sm mt-4">
+                Episodes are not available for streaming at this time. This series has {serie.numberOfSeasons || '?'} season(s) listed on MyTV+.
+              </p>
             </div>
-
-            {/* Player + Episode selector */}
-            <MyTVSeriesPlayer serie={serie} />
           </div>
         </div>
       </div>
