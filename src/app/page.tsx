@@ -31,8 +31,8 @@ export default async function HomePage() {
 
   try {
     [mytvMovies, mytvSeries] = await Promise.all([
-      fetchMyTVMovies(),
-      fetchMyTVSeries(),
+      fetchMyTVMovies(undefined, 20),
+      fetchMyTVSeries(undefined, 20),
     ]);
   } catch (e) {
     console.error('Failed to fetch MyTV+ data:', e);

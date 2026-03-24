@@ -1,15 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MyTVMovie, MyTVSeries, MyTVMovieCategory, MyTVSeriesCategory } from '@/types';
-
-interface Props {
-  initialMovies: MyTVMovie[];
-  initialSeries: MyTVSeries[];
-  movieCategories: MyTVMovieCategory[];
-  seriesCategories: MyTVSeriesCategory[];
-}
+import { MyTVMovie, MyTVSeries } from '@/types';
+import { STREAM_API } from '@/lib/streamApi';
 
 function MovieCard({ movie }: { movie: MyTVMovie }) {
   return (
@@ -19,25 +13,18 @@ function MovieCard({ movie }: { movie: MyTVMovie }) {
     >
       <div className="aspect-[2/3] relative">
         {movie.poster ? (
-          <img
-            src={movie.poster}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-white/[0.04]">
             <span className="text-2xl font-bold text-white/20">{movie.title.slice(0, 2)}</span>
           </div>
         )}
-        {/* Hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
           <p className="text-white text-xs font-semibold line-clamp-2 mb-1">{movie.title}</p>
           <div className="flex items-center gap-2 text-[10px] text-white/60">
             {movie.year && <span>{movie.year}</span>}
             {movie.rating && <span>&#9733; {movie.rating}</span>}
           </div>
-          {/* Play icon */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
             <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300 border border-white/20">
               <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -63,12 +50,7 @@ function SeriesCard({ serie }: { serie: MyTVSeries }) {
     >
       <div className="aspect-[2/3] relative">
         {serie.poster ? (
-          <img
-            src={serie.poster}
-            alt={serie.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <img src={serie.poster} alt={serie.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-white/[0.04]">
             <span className="text-2xl font-bold text-white/20">{serie.title.slice(0, 2)}</span>
@@ -97,41 +79,77 @@ function SeriesCard({ serie }: { serie: MyTVSeries }) {
   );
 }
 
-export default function MyTVBrowse({ initialMovies, initialSeries, movieCategories, seriesCategories }: Props) {
+export default function MyTVBrowse() {
   const [tab, setTab] = useState<'movies' | 'series'>('movies');
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [movies, setMovies] = useState<MyTVMovie[]>([]);
+  const [series, setSeries] = useState<MyTVSeries[]>([]);
+  const [movieCats, setMovieCats] = useState<string[]>([]);
+  const [seriesCats, setSeriesCats] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState({ movies: 0, series: 0 });
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch(`${STREAM_API}/api/mytv/movies`).then(r => r.json()),
+      fetch(`${STREAM_API}/api/mytv/series`).then(r => r.json()),
+    ]).then(([moviesData, seriesData]) => {
+      if (moviesData.success) {
+        setMovies(moviesData.movies || []);
+        setMovieCats((moviesData.categories || []).map((c: { name: string }) => c.name));
+        setCounts(prev => ({ ...prev, movies: moviesData.count || 0 }));
+      }
+      if (seriesData.success) {
+        setSeries(seriesData.series || []);
+        setSeriesCats((seriesData.categories || []).map((c: { name: string }) => c.name));
+        setCounts(prev => ({ ...prev, series: seriesData.count || 0 }));
+      }
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
   const filteredMovies = useMemo(() => {
-    let items = initialMovies;
+    let items = movies;
     if (search) {
       const q = search.toLowerCase();
       items = items.filter(m => m.title.toLowerCase().includes(q) || m.category.toLowerCase().includes(q));
     }
-    if (selectedCategory) {
-      items = items.filter(m => m.category === selectedCategory);
-    }
+    if (selectedCategory) items = items.filter(m => m.category === selectedCategory);
     return items;
-  }, [initialMovies, search, selectedCategory]);
+  }, [movies, search, selectedCategory]);
 
   const filteredSeries = useMemo(() => {
-    let items = initialSeries;
+    let items = series;
     if (search) {
       const q = search.toLowerCase();
       items = items.filter(s => s.title.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
     }
-    if (selectedCategory) {
-      items = items.filter(s => s.category === selectedCategory);
-    }
+    if (selectedCategory) items = items.filter(s => s.category === selectedCategory);
     return items;
-  }, [initialSeries, search, selectedCategory]);
+  }, [series, search, selectedCategory]);
 
-  const categories = tab === 'movies'
-    ? movieCategories.map(c => c.name)
-    : seriesCategories.map(c => c.name);
+  const categories = tab === 'movies' ? movieCats : seriesCats;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-[3px] border-white/5" />
+            <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-purple-400 animate-spin" />
+          </div>
+          <p className="text-white/30 text-sm">Loading MyTV+ library...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Stats */}
+      <p className="text-white/30 text-sm">{counts.movies} movies &middot; {counts.series} series</p>
+
       {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex gap-1 bg-white/[0.04] rounded-xl p-1">

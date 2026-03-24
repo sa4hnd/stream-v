@@ -1,9 +1,12 @@
 import { STREAM_API } from './streamApi';
 import { MyTVMovie, MyTVSeries, MyTVMovieCategory, MyTVSeriesCategory } from '@/types';
 
-export async function fetchMyTVMovies(query?: string): Promise<{ movies: MyTVMovie[]; categories: MyTVMovieCategory[]; count: number }> {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : '';
-  const res = await fetch(`${STREAM_API}/api/mytv/movies${qs}`, { next: { revalidate: 300 } });
+export async function fetchMyTVMovies(query?: string, limit?: number): Promise<{ movies: MyTVMovie[]; categories: MyTVMovieCategory[]; count: number }> {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString() ? `?${params}` : '';
+  const res = await fetch(`${STREAM_API}/api/mytv/movies${qs}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch MyTV+ movies');
   const data = await res.json();
   if (!data.success) throw new Error('MyTV+ movies API error');
@@ -11,16 +14,19 @@ export async function fetchMyTVMovies(query?: string): Promise<{ movies: MyTVMov
 }
 
 export async function fetchMyTVMovie(id: string): Promise<MyTVMovie> {
-  const res = await fetch(`${STREAM_API}/api/mytv/movies/${id}`, { next: { revalidate: 300 } });
+  const res = await fetch(`${STREAM_API}/api/mytv/movies/${id}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch MyTV+ movie');
   const data = await res.json();
   if (!data.success) throw new Error('MyTV+ movie API error');
   return data.movie;
 }
 
-export async function fetchMyTVSeries(query?: string): Promise<{ series: MyTVSeries[]; categories: MyTVSeriesCategory[]; count: number }> {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : '';
-  const res = await fetch(`${STREAM_API}/api/mytv/series${qs}`, { next: { revalidate: 300 } });
+export async function fetchMyTVSeries(query?: string, limit?: number): Promise<{ series: MyTVSeries[]; categories: MyTVSeriesCategory[]; count: number }> {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString() ? `?${params}` : '';
+  const res = await fetch(`${STREAM_API}/api/mytv/series${qs}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch MyTV+ series');
   const data = await res.json();
   if (!data.success) throw new Error('MyTV+ series API error');
@@ -28,7 +34,7 @@ export async function fetchMyTVSeries(query?: string): Promise<{ series: MyTVSer
 }
 
 export async function fetchMyTVSerie(id: string): Promise<MyTVSeries> {
-  const res = await fetch(`${STREAM_API}/api/mytv/series/${id}`, { next: { revalidate: 300 } });
+  const res = await fetch(`${STREAM_API}/api/mytv/series/${id}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch MyTV+ series');
   const data = await res.json();
   if (!data.success) throw new Error('MyTV+ series API error');

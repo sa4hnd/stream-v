@@ -1,26 +1,11 @@
-import { fetchMyTVMovies, fetchMyTVSeries } from '@/lib/mytvMovies';
 import MyTVBrowse from './MyTVBrowse';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'MyTV+ - SAHND+',
   description: 'Browse movies and series from MyTV+',
 };
 
-export default async function MyTVPage() {
-  let movies: Awaited<ReturnType<typeof fetchMyTVMovies>> = { movies: [], categories: [], count: 0 };
-  let series: Awaited<ReturnType<typeof fetchMyTVSeries>> = { series: [], categories: [], count: 0 };
-
-  try {
-    [movies, series] = await Promise.all([
-      fetchMyTVMovies(),
-      fetchMyTVSeries(),
-    ]);
-  } catch (e) {
-    console.error('Failed to fetch MyTV+ data:', e);
-  }
-
+export default function MyTVPage() {
   return (
     <div className="min-h-screen page-enter">
       {/* Hero */}
@@ -33,20 +18,13 @@ export default async function MyTVPage() {
             <span className="text-xs font-semibold text-purple-400 uppercase tracking-widest">MyTV+</span>
           </div>
           <h1 className="font-display text-5xl sm:text-6xl text-white mb-2">MyTV+ Library</h1>
-          <p className="text-white/40 text-sm">
-            {movies.count} movies &middot; {series.count} series
-          </p>
+          <p className="text-white/40 text-sm">Browse movies and series</p>
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content — fetched client-side to avoid Vercel timeout on large responses */}
       <div className="max-w-[1800px] mx-auto px-6 sm:px-8 lg:px-14 pb-16">
-        <MyTVBrowse
-          initialMovies={movies.movies}
-          initialSeries={series.series}
-          movieCategories={movies.categories}
-          seriesCategories={series.categories}
-        />
+        <MyTVBrowse />
       </div>
     </div>
   );
