@@ -1,4 +1,4 @@
-export const STREAM_API = 'https://sahnd-api-16018004132.europe-west1.run.app';
+export const STREAM_API = 'https://sahnd-plus-api.onrender.com';
 
 export interface StreamResult {
   m3u8: string;
