@@ -28,8 +28,9 @@ export async function fetchStream(
       const data = await scrapeRes.json();
       if (data.success && data.masterPlaylistUrl) {
         const referer = data.referer || 'https://vixsrc.to/';
+        // Proxy m3u8 through Vercel (Render is Cloudflare-blocked too)
         return {
-          m3u8: `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(data.masterPlaylistUrl)}&referer=${encodeURIComponent(referer)}`,
+          m3u8: `/api/proxy?url=${encodeURIComponent(data.masterPlaylistUrl)}&referer=${encodeURIComponent(referer)}`,
           subtitles: [],
           provider: 'Vixsrc',
           headers: {},
