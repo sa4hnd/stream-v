@@ -16,7 +16,29 @@ export async function fetchStream(
   const apiType = type === 'tv' ? 'series' : 'movie';
   const qs = type === 'tv' && season && episode ? `?season=${season}&episode=${episode}` : '';
 
-  // Try Vixsrc directly first (fastest, returns real m3u8)
+  // 1. Scrape vixsrc via our own Vercel API route (Vercel IPs pass Cloudflare)
+  try {
+    const params = new URLSearchParams({ id: String(tmdbId), type });
+    if (type === 'tv' && season && episode) {
+      params.set('s', String(season));
+      params.set('e', String(episode));
+    }
+    const scrapeRes = await fetch(`/api/scrape-vixsrc?${params}`);
+    if (scrapeRes.ok) {
+      const data = await scrapeRes.json();
+      if (data.success && data.masterPlaylistUrl) {
+        const referer = data.referer || 'https://vixsrc.to/';
+        return {
+          m3u8: `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(data.masterPlaylistUrl)}&referer=${encodeURIComponent(referer)}`,
+          subtitles: [],
+          provider: 'Vixsrc',
+          headers: {},
+        };
+      }
+    }
+  } catch {}
+
+  // 2. Fallback: server-side vixsrc (works if Render IP isn't blocked)
   try {
     const vixUrl = `${STREAM_API}/api/streams/vixsrc/${apiType}/${tmdbId}${qs}`;
     const vixRes = await fetch(vixUrl);
@@ -25,7 +47,6 @@ export async function fetchStream(
       if (vixData.success && vixData.streams?.length) {
         const stream = vixData.streams[0];
         const referer = stream.headers?.Referer || 'https://vixsrc.to/';
-        // Proxy through our API so browser gets CORS headers + Referer is handled server-side
         return {
           m3u8: `${STREAM_API}/proxy/stream.m3u8?url=${encodeURIComponent(stream.url)}&referer=${encodeURIComponent(referer)}`,
           subtitles: stream.subtitles || [],
@@ -36,7 +57,7 @@ export async function fetchStream(
     }
   } catch {}
 
-  // Fallback: try aggregate endpoint
+  // 3. Fallback: aggregate endpoint (all providers)
   try {
     const url = `${STREAM_API}/api/streams/${apiType}/${tmdbId}${qs}`;
     const res = await fetch(url);
