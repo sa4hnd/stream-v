@@ -31,6 +31,8 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
   const [isFav, setIsFav] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Custom HLS.js loader that proxies all requests
   const getProxyLoader = useCallback(() => {
@@ -175,6 +177,22 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
     setIsFav(nowFav);
   };
 
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
   if (!currentChannel) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -189,7 +207,7 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div ref={containerRef} className="min-h-screen bg-black flex flex-col">
       {/* Player Area */}
       <div
         className="relative flex-1 flex items-center justify-center cursor-pointer select-none"
@@ -259,20 +277,37 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
               {currentChannel.name}
             </h1>
 
-            <button
-              onClick={toggleFav}
-              className="p-2 transition-colors"
-            >
-              <svg
-                className={`w-5 h-5 ${isFav ? 'text-accent-red fill-accent-red' : 'text-white/60 hover:text-white'}`}
-                fill={isFav ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleFav}
+                className="p-2 transition-colors"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
-            </button>
+                <svg
+                  className={`w-5 h-5 ${isFav ? 'text-accent-red fill-accent-red' : 'text-white/60 hover:text-white'}`}
+                  fill={isFav ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              </button>
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 text-white/60 hover:text-white transition-colors"
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Center Play/Pause */}
