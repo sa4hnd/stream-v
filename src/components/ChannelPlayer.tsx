@@ -178,19 +178,36 @@ export default function ChannelPlayer({ channelId, allChannels }: Props) {
   };
 
   const toggleFullscreen = () => {
-    const el = containerRef.current;
-    if (!el) return;
+    const video = videoRef.current as any;
+    const el = containerRef.current as any;
+
+    // iOS Safari: only video.webkitEnterFullscreen works
+    if (video?.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+      return;
+    }
+
+    // Standard Fullscreen API (desktop / Android)
     if (!document.fullscreenElement) {
-      el.requestFullscreen().catch(() => {});
+      (el ?? document.documentElement).requestFullscreen?.().catch(() => {});
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen?.().catch(() => {});
     }
   };
 
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFsChange = () => {
+      const video = videoRef.current as any;
+      setIsFullscreen(
+        !!document.fullscreenElement || !!video?.webkitDisplayingFullscreen
+      );
+    };
     document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
   }, []);
 
   if (!currentChannel) {
