@@ -287,7 +287,6 @@ export default function VideoPlayer({
           src={embedUrl}
           className="w-full h-full"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           referrerPolicy="origin"
           onLoad={handleLoad}
