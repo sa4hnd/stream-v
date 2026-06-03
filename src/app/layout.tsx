@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: "SAHND+ - Watch Movies & TV Shows Free",
@@ -22,6 +23,7 @@ export default function RootLayout({
         <LayoutWrapper>
           <Footer />
         </LayoutWrapper>
+        <Analytics />
       </body>
     </html>
   );
